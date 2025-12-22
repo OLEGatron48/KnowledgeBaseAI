@@ -1,46 +1,3 @@
-# KnowledgeBaseAI 2.0
-
-![Status](https://img.shields.io/badge/Status-Active_Development-green)
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![License](https://img.shields.io/badge/License-BUSL--1.1-red)
-![Architecture](https://img.shields.io/badge/Architecture-Graph--RAG-purple)
-
-**Cognitive Infrastructure Platform** — платформа адаптивного обучения и управления знаниями нового поколения.
-
-В отличие от классических LMS, KnowledgeBaseAI отказывается от линейных списков контента в пользу **Направленного Графа Знаний (Knowledge Graph)**. Мы объединяем детерминированную структуру графов с семантической мощью LLM/RAG, гарантируя математическую корректность, безопасность данных и объяснимость рекомендаций.
-
----
-
-## 🌟 Ключевые особенности
-
-*   **Graph-First Architecture:** Единственным источником истины является граф (Neo4j). Векторные индексы (Qdrant) — это лишь производный кэш.
-*   **Adaptive Learning Engine:** Построение нелинейных маршрутов обучения (Roadmaps) на основе алгоритма A*, учитывающего пробелы в знаниях, уверенность пользователя и сложность материала.
-*   **Safety via Proposals:** Прямая запись в базу запрещена. Все изменения проходят через пайплайн: `Draft` → `Proposal` → `Validation` → `Integrity Gate` → `Commit`.
-*   **Evidence-Based:** Любое знание в графе имеет ссылку на источник (цитату/чанк). Никаких галлюцинаций.
-*   **Strict Tenant Isolation:** Данные разных клиентов физически и логически изолированы. Утечка данных исключена архитектурно.
-
----
-
-## 🏗 Архитектура
-
-Проект построен на принципе **"Святой Троицы Данных"** (Polyglot Persistence):
-
-1.  **Neo4j (The Brain):** Хранит топологию знаний, онтологию (Concept, Skill, Error) и связи (`PREREQ`, `BASED_ON`).
-2.  **Qdrant (The Semantic Layer):** Отвечает за векторный поиск и RAG.
-3.  **PostgreSQL (The Backbone):** Хранит пользователей, метаданные Proposals, историю задач и Audit Log.
-
-### Схема потока данных (Ingestion Pipeline)
-```mermaid
-graph LR
-    A[Doc Upload] --> B(Parser & Chunker)
-    B --> C(Vector Embedding)
-    C --> D{AI Agent}
-    D --> E[Proposal JSON]
-    E --> F{Integrity Gate}
-    F -- Valid --> G[(Neo4j Commit)]
-    F -- Invalid --> H[Reject]
-```
-
 ---
 
 ## 🛠 Технический стек
@@ -82,19 +39,6 @@ graph LR
 4.  **Проверка статуса:**
     После запуска документация API будет доступна по адресу:
     `http://localhost:8000/docs`
-
----
-
-## 🛡 Архитектурные Инварианты
-
-Разработка ведется в строгом соответствии с **Master Design Document**. Нарушение этих правил недопустимо:
-
-1.  **No Direct Writes:** Никакой код (кроме `Commit Worker`) не пишет `CREATE/SET` в Neo4j напрямую. Используйте `ProposalService`.
-2.  **Determinism:** Одинаковый входной файл + одинаковый конфиг обязаны давать идентичный `proposal_checksum`.
-3.  **Integrity Gate:** Нельзя закоммитить граф с циклами в зависимостях (`PREREQ`) или "висячими" навыками.
-4.  **Tenant Isolation:** Каждый запрос к БД обязан содержать фильтр по `tenant_id`.
-
----
 
 ## 📂 Структура проекта
 
