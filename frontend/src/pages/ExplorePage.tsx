@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import { Network, type Edge as VisNetworkEdge, type Node as VisNetworkNode } from 'vis-network'
-import type { ViewportResponse, GraphEdge } from '../api'
+import type { ViewportResponse, GraphEdge, NodeKind } from '../api'
 import { getViewport } from '../api'
 import { NodeDetailsSidebar } from '../components/NodeDetailsSidebar'
 import { GRAPH_THEME } from '../config/graphTheme' 
 import type { ThemeNodeKind } from '../config/graphTheme'
-import { setSelectedUid, toggleChat, addMessage } from '../store/appSlice'
+import { toggleChat } from '../store/appSlice'
 import { useDispatch } from 'react-redux'
 import { useGraphContext } from '../context/GraphContext'
 import { KBSelect } from '../components/KBSelect'
+import { APP_CONFIG } from '../config/appConfig'
 
 type ExplorePageProps = {
   selectedUid: string
@@ -24,11 +25,9 @@ function toVisData(viewport: ViewportResponse) {
   const seenIds = new Set<string>()
   
   // Маппинг типов БД к техническому стандарту 4.2
-  const mapKind = (kind: string): 'concept' | 'skill' | 'resource' => {
+  const mapKind = (kind: string): NodeKind => {
     const k = kind.toLowerCase()
-    if (k.includes('skill')) return 'skill'
-    if (k.includes('resource') || k.includes('example')) return 'resource'
-    return 'concept' // По умолчанию для Subject, Section, Topic
+    return APP_CONFIG.kindMap[k] || APP_CONFIG.defaultKind
   }
 
   const nodes = viewport.nodes
@@ -41,12 +40,13 @@ function toVisData(viewport: ViewportResponse) {
       return true
     })
     .map((n): VisNode => {
-      // Применяем маппинг к стандарту
+      // Применяем маппинг к стандарту (соответствие DoD 4.2)
       const standardKind = mapKind(n.kind)
       
-      // Для оформления используем оригинальный kind или приведение к теме
+      // Для оформления пытаемся использовать оригинальный kind, 
+      // если его нет в теме - используем смаппленный стандартный
       const kindKey = n.kind as ThemeNodeKind
-      const validKind = (GRAPH_THEME.nodes.colors[kindKey] ? kindKey : 'Default') as ThemeNodeKind
+      const validKind = (GRAPH_THEME.nodes.colors[kindKey] ? kindKey : standardKind) as ThemeNodeKind
       
       const color = GRAPH_THEME.nodes.colors[validKind]
       const size = GRAPH_THEME.nodes.sizes[validKind]

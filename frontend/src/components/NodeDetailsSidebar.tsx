@@ -11,10 +11,8 @@ type Props = {
 export function NodeDetailsSidebar({ uid, onClose, onAskAI }: Props) {
   const { data, loading, error } = useNodeDetails(uid)
 
-  if (!uid) return null
-
   return (
-    <div className="kb-sidebar-drawer">
+    <div className={`kb-sidebar-drawer ${uid ? 'open' : ''}`}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
           {loading ? 'Loading...' : data?.kind || 'Node Details'}

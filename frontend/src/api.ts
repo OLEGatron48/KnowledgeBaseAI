@@ -6,6 +6,7 @@ import {
   AssistantActionSchema,
   AssistantToolsSchema,
 } from "./schemas";
+import { type NodeKind } from "./config/appConfig";
 
 export type {
   ViewportResponse,
@@ -63,7 +64,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export interface GraphNode {
   uid: string;
   title?: string;
-  kind: 'concept' | 'skill' | 'resource';
+  kind: NodeKind;
   data?: Record<string, any>;
 }
 

@@ -11,7 +11,7 @@ import { generateUid, formatTime } from '../utils/commonUtils'
 
 export function AIChat() {
   const dispatch = useDispatch()
-  const { selectedUid, messages } = useSelector((state: RootState) => state.app)
+  const { selectedUid, messages, isChatOpen } = useSelector((state: RootState) => state.app)
   
   const [chatInput, setChatInput] = useState('')
   const [action, setAction] = useState<string | undefined>(undefined)
@@ -72,7 +72,7 @@ export function AIChat() {
 
   return (
     <div 
-      className="kb-panel kb-chat-window"
+      className={`kb-panel kb-chat-window ${isChatOpen ? 'open' : ''}`}
       style={{ 
         width: UI_CONFIG.chatWidth, 
         height: UI_CONFIG.chatHeight,
