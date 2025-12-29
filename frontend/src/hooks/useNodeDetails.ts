@@ -27,7 +27,6 @@ export function useNodeDetails(uid: string | null) {
         if (cancelled) return
         if (err instanceof HttpError) {
           setError(err.message)
-          if (err.details) console.error('[useNodeDetails] Error details:', err.details)
         } else {
           setError(err instanceof Error ? err.message : 'Unknown error')
         }
