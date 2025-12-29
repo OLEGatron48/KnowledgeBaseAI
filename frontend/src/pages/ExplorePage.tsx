@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import { Network, type Edge as VisNetworkEdge, type Node as VisNetworkNode } from 'vis-network'
-import type { ViewportResponse, GraphEdge, NodeKind } from '../api'
+import type { ViewportResponse, GraphEdge } from '../api'
 import { getViewport } from '../api'
 import { NodeDetailsSidebar } from '../components/NodeDetailsSidebar'
 import { GRAPH_THEME } from '../config/graphTheme' 
@@ -9,7 +9,7 @@ import { toggleChat } from '../store/appSlice'
 import { useDispatch } from 'react-redux'
 import { useGraphContext } from '../context/GraphContext'
 import { KBSelect } from '../components/KBSelect'
-import { APP_CONFIG } from '../config/appConfig'
+import { APP_CONFIG, type NodeKind } from '../config/appConfig'
 
 type ExplorePageProps = {
   selectedUid: string
@@ -33,7 +33,6 @@ function toVisData(viewport: ViewportResponse) {
   const nodes = viewport.nodes
     .filter(n => {
       if (seenIds.has(n.uid)) {
-        console.warn(`[Explore] Duplicate node UID skipped: ${n.uid}`)
         return false
       }
       seenIds.add(n.uid)
@@ -111,16 +110,8 @@ function toVisData(viewport: ViewportResponse) {
 const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: ExplorePageProps) {
   const dispatch = useDispatch()
   const { graphState, saveGraphState } = useGraphContext()
-  
-  // LOG: Проверяем состояние при рендере
-  console.log('[Explore] Render. GraphState:', { 
-      storedUid: graphState.selectedUid, 
-      currentUid: selectedUid, 
-      hasViewport: !!graphState.viewport,
-      hasCamera: !!graphState.camera 
-  })
 
-  const [depth, setDepth] = useState(graphState.depth || 1)
+  const [depth, setDepth] = useState(graphState.depth ?? APP_CONFIG.defaultDepth)
   const [filterKind, setFilterKind] = useState<string>('All')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -218,7 +209,6 @@ const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: Expl
     
     // Подмешиваем сохраненные позиции из REF (не вызывает ре-рендер при обновлении)
     const savedPositions = graphStateRef.current.positions
-    console.log(graphStateRef.current.positions);
     
     const nodes = isContextValid && savedPositions 
       ? baseNodes.map(n => ({
@@ -270,17 +260,12 @@ const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: Expl
 
     // Восстанавливаем камеру из REF (не триггерит эффект)
     const savedCamera = graphStateRef.current.camera
-    console.log('[Explore] Init Network. Saved camera:', savedCamera, 'Context valid:', isContextValid)
-    
     if (savedCamera && isContextValid) {
       // Инициализируем ref сразу, чтобы при быстром уходе он не был null
       cameraRef.current = savedCamera
-
-      console.log('[Explore] Restoring camera position...')
       // Используем setTimeout, чтобы дать vis-network инициализироваться перед сдвигом камеры
       setTimeout(() => {
         if (!isMounted) return 
-        console.log('[Explore] MOVING CAMERA NOW to:', savedCamera.position)
         network.moveTo({
           position: savedCamera.position,
           scale: savedCamera.scale,
@@ -337,8 +322,6 @@ const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: Expl
       const lastKnownCamera = cameraRef.current || { position: network.getViewPosition(), scale: network.getScale() }
       const positions = network.getPositions() // Получаем позиции узлов
       
-      console.log('[Explore] Unmounting. Saving camera:', lastKnownCamera)
-      
       saveGraphState({
         camera: lastKnownCamera,
         positions: positions, // Сохраняем позиции
@@ -355,13 +338,11 @@ const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: Expl
     
     // Используем REF для проверки камеры
     if (graphStateRef.current.camera && isContextValid) {
-        console.log('[Explore] Skipping focus because camera is restored')
         return
     }
 
-    console.log('[Explore] Focusing on node (default behavior)')
-    const allNodes = network.body.data.nodes
-    if (!allNodes.get(selectedUid)) return
+    const pos = network.getPositions([selectedUid]) as Record<string, { x: number; y: number }>
+    if (!pos[selectedUid]) return
 
     network.selectNodes([selectedUid])
     network.focus(selectedUid, { scale: 1.1, animation: { duration: 350, easingFunction: 'easeInOutQuad' } })
@@ -413,8 +394,13 @@ const ExplorePage = memo(function ExplorePage({ selectedUid, onSelectUid }: Expl
       >
         <NodeDetailsSidebar 
           uid={detailsUid} 
-          onClose={() => setDetailsUid(null)} 
-          onAskAI={(uid) => {
+          onClose={() => {
+            setDetailsUid(null)
+            // Важно: если узел остался выделенным в vis-network, повторный клик не вызовет selectNode.
+            // Снимаем выделение, чтобы сайдбар мог открываться снова на тот же узел.
+            networkRef.current?.unselectAll()
+          }} 
+          onAskAI={(_uid) => {
             dispatch(toggleChat())
           }} 
         />

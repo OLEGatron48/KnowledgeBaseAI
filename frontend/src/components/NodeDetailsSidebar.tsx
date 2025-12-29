@@ -8,6 +8,38 @@ type Props = {
   onAskAI: (uid: string) => void
 }
 
+type RelationItem = {
+  rel: string
+  uid: string
+  title?: string
+}
+
+function RelationsSection({
+  title,
+  titleColor,
+  items,
+}: {
+  title: string
+  titleColor: string
+  items: RelationItem[]
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div>
+      <div className="kb-sidebar-section-title" style={{ color: titleColor }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {items.map((rel, i) => (
+          <div key={`${rel.uid}:${rel.rel}:${i}`} className="kb-panel" style={{ padding: 8, fontSize: 12, borderRadius: 6 }}>
+            <div style={{ color: 'var(--muted)', marginBottom: 2 }}>{rel.rel}</div>
+            <div style={{ fontWeight: 500 }}>{rel.title || rel.uid}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function NodeDetailsSidebar({ uid, onClose, onAskAI }: Props) {
   const { data, loading, error } = useNodeDetails(uid)
 
@@ -73,33 +105,8 @@ export function NodeDetailsSidebar({ uid, onClose, onAskAI }: Props) {
             </div>
           </div>
 
-          {data.incoming.length > 0 && (
-            <div>
-              <div className="kb-sidebar-section-title" style={{ color: '#ff9f1c' }}>Входящие связи</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {data.incoming.map((rel, i) => (
-                  <div key={i} className="kb-panel" style={{ padding: 8, fontSize: 12, borderRadius: 6 }}>
-                    <div style={{ color: 'var(--muted)', marginBottom: 2 }}>{rel.rel}</div>
-                    <div style={{ fontWeight: 500 }}>{rel.title || rel.uid}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {data.outgoing.length > 0 && (
-            <div>
-              <div className="kb-sidebar-section-title" style={{ color: '#7c5cff' }}>Исходящие связи</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {data.outgoing.map((rel, i) => (
-                  <div key={i} className="kb-panel" style={{ padding: 8, fontSize: 12, borderRadius: 6 }}>
-                    <div style={{ color: 'var(--muted)', marginBottom: 2 }}>{rel.rel}</div>
-                    <div style={{ fontWeight: 500 }}>{rel.title || rel.uid}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <RelationsSection title="Входящие связи" titleColor="#ff9f1c" items={data.incoming} />
+          <RelationsSection title="Исходящие связи" titleColor="#7c5cff" items={data.outgoing} />
         </>
       )}
     </div>

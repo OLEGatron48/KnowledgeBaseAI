@@ -80,7 +80,7 @@ export default function App() {
               className="kb-btn" 
               onClick={() => {
                 const nodes = APP_CONFIG.testNodes;
-                const currentIndex = nodes.indexOf(selectedUid as any);
+                const currentIndex = nodes.indexOf(selectedUid);
                 const nextIndex = (currentIndex + 1) % nodes.length;
                 dispatch(setSelectedUid(nodes[nextIndex]));
               }}

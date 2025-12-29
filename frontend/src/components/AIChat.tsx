@@ -30,7 +30,7 @@ export function AIChat() {
 
     try {
       const data = await assistantChat({
-        action: action as any,
+        action,
         message: text,
         from_uid: selectedUid,
         to_uid: selectedUid,
